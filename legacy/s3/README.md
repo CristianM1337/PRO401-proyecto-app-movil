@@ -1,6 +1,6 @@
-# Evaluación Sumativa - Semana 6: 
+# Evaluación Sumativa - Semana 3: Introducción a la Programación Java
 
-Este repositorio contiene la resolución práctica de la actividad sumativa de la semana 6, enfocada en... 
+Este repositorio contiene la resolución práctica de la actividad sumativa de la semana 3, enfocada en la compilación y ejecución de aplicaciones Java mediante línea de comandos (sin IDE), junto con el análisis de requerimientos para un caso de estudio logístico de e-commerce.
 
 # 1. Descripción del Negocio
 
@@ -38,4 +38,16 @@ Los siguientes requerimientos definen los atributos de calidad de la arquitectur
 
     Historia 2: Como cliente, quiero que el sistema calcule automáticamente el costo de mi envío en base a mi distancia y el monto de mi compra, para saber exactamente cuánto debo pagar. Criterio de aceptación: Si mi compra es de $30.000 y vivo a 10 km, el sistema agrega un cobro de envío de $1.500 al total.
 
-.
+# 5. Código Fuente y Compilación (Vehiculo.java)
+
+El código fuente de la aplicación de consola se encuentra en el directorio `/src`. Este programa solicita y procesa las características técnicas de un vehículo, demostrando el uso de entrada estándar y variables de tipo primitivo (`String`, `double`, `int`).
+
+# 6. Instrucciones de Ejecución
+
+Para compilar y ejecutar el programa utilizando el JDK de JavaSE, ejecuta los siguientes comandos en tu terminal desde la ruta raíz del proyecto:
+
+1. **Compilación:** Genera el *byte-code* (`.class`) interpretable por la JVM.
+   cd src
+   javac Vehiculo.java
+2. **Ejecución:** Lanza la Máquina Virtual de Java.
+   java Vehiculo
