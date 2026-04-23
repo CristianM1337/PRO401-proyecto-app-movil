@@ -1,35 +1,23 @@
 package com.example.appdistribuidora
-import com.google.android.gms.location.Priority
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.LocalTextSelectionColors
-import androidx.compose.foundation.text.selection.TextSelectionColors
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import com.example.appdistribuidora.navigation.AppScreen
+import com.example.appdistribuidora.ui.DespachoScreen
+import com.example.appdistribuidora.ui.LoginScreen
+import com.example.appdistribuidora.ui.MenuScreen
 import com.example.appdistribuidora.ui.theme.AppDistribuidoraTheme
-import com.google.android.gms.location.LocationServices
 
 class MainActivity : ComponentActivity() {
 
@@ -50,10 +38,29 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppDistribuidoraTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    PantallaDespacho(
+                var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Login) }
+
+                when (currentScreen) {
+                    is AppScreen.Login -> LoginScreen(
+                        onLoginSuccess = {
+                            currentScreen = AppScreen.Menu
+                        }
+                    )
+
+                    is AppScreen.Menu -> MenuScreen(
+                        onGoToDespacho = {
+                            currentScreen = AppScreen.Despacho
+                        },
+                        onLogout = {
+                            currentScreen = AppScreen.Login
+                        }
+                    )
+
+                    is AppScreen.Despacho -> DespachoScreen(
                         activity = this,
-                        modifier = Modifier.padding(innerPadding)
+                        onBack = {
+                            currentScreen = AppScreen.Menu
+                        }
                     )
                 }
             }
@@ -73,206 +80,5 @@ class MainActivity : ComponentActivity() {
                 requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             }
         }
-    }
-}
-
-fun calcularDistancia(
-    lat1: Double,
-    lon1: Double,
-    lat2: Double,
-    lon2: Double
-): Double {
-    val origen = Location("origen").apply {
-        latitude = lat1
-        longitude = lon1
-    }
-
-    val destino = Location("destino").apply {
-        latitude = lat2
-        longitude = lon2
-    }
-
-    return origen.distanceTo(destino) / 1000.0
-}
-
-fun calcularCostoDespacho(montoCompra: Int, distanciaKm: Double): Double {
-    return when {
-        montoCompra >= 50000 && distanciaKm <= 20 -> 0.0
-        montoCompra in 25000..49999 -> distanciaKm * 150
-        else -> distanciaKm * 300
-    }
-}
-
-@SuppressLint("MissingPermission")
-fun obtenerUbicacionActual(
-    activity: ComponentActivity,
-    onLocationReceived: (Double, Double) -> Unit,
-    onError: () -> Unit
-) {
-    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(activity)
-
-    fusedLocationClient.getCurrentLocation(
-        Priority.PRIORITY_HIGH_ACCURACY,
-        null
-    )
-        .addOnSuccessListener { location ->
-            if (location != null) {
-                onLocationReceived(location.latitude, location.longitude)
-            } else {
-                Log.d("APP_DESPACHO", "Ubicación no disponible")
-                onError()
-            }
-        }
-        .addOnFailureListener {
-            Log.d("APP_DESPACHO", "Error al obtener ubicación")
-            onError()
-        }
-}
-@Composable
-fun PantallaDespacho(
-    activity: ComponentActivity,
-    modifier: Modifier = Modifier
-) {
-    var montoIngresado by remember { mutableStateOf("") }
-    var resultadoTexto by remember { mutableStateOf("") }
-
-    val customTextSelectionColors = TextSelectionColors(
-        handleColor = Color(0xFF14B8A6),
-        backgroundColor = Color(0xFF5EEAD4)
-    )
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .imePadding()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
-            Spacer(modifier = Modifier.height(120.dp))
-
-            Text(
-                text = "Cálculo de despacho por distancia GPS",
-                color = Color(0xFF14B8A6),
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            CompositionLocalProvider(
-                LocalTextSelectionColors provides customTextSelectionColors
-            ) {
-                OutlinedTextField(
-                    value = montoIngresado,
-                    onValueChange = { montoIngresado = it },
-                    label = { Text("Ingrese monto de compra") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(0.9f),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF14B8A6),
-                        unfocusedBorderColor = Color(0xFF5EEAD4),
-                        focusedLabelColor = Color(0xFF0F766E),
-                        unfocusedLabelColor = Color.Black,
-                        cursorColor = Color(0xFF0F766E),
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Button(
-                onClick = {
-                    val montoCompra = montoIngresado.toIntOrNull()
-
-                    if (montoCompra != null) {
-                        obtenerUbicacionActual(
-                            activity = activity,
-                            onLocationReceived = { latUsuario, lonUsuario ->
-
-                                val latBodega = -33.4372
-                                val lonBodega = -70.6506
-
-                                val distanciaKm = calcularDistancia(
-                                    latUsuario,
-                                    lonUsuario,
-                                    latBodega,
-                                    lonBodega
-                                )
-
-                                val costoDespacho = calcularCostoDespacho(montoCompra, distanciaKm)
-
-                                val mensajeCosto = if (costoDespacho == 0.0) {
-                                    "Despacho GRATIS 🎉"
-                                } else {
-                                    "Costo de despacho: $${"%.0f".format(costoDespacho)}"
-                                }
-
-                                resultadoTexto = buildString {
-                                    appendLine("Monto de compra: $$montoCompra")
-                                    appendLine("Distancia a bodega: ${"%.2f".format(distanciaKm)} km")
-                                    appendLine(mensajeCosto)
-                                }
-
-                                Log.d("APP_DESPACHO", "Monto compra: $montoCompra")
-                                Log.d("APP_DESPACHO", "Lat usuario: $latUsuario")
-                                Log.d("APP_DESPACHO", "Lon usuario: $lonUsuario")
-                                Log.d("APP_DESPACHO", "Distancia calculada: ${"%.2f".format(distanciaKm)} km")
-                                Log.d("APP_DESPACHO", "Costo despacho: ${"%.0f".format(costoDespacho)}")
-                            },
-                            onError = {
-                                resultadoTexto = "No se pudo obtener la ubicación actual del dispositivo"
-                            }
-                        )
-                    } else {
-                        resultadoTexto = "Por favor, ingrese un monto válido"
-                        Log.d("APP_DESPACHO", "Entrada inválida en monto de compra")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(0.6f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF14B8A6)
-                )
-            ) {
-                Text("Calcular despacho", color = Color.White)
-            }
-
-            if (resultadoTexto.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(28.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .background(
-                            color = Color(0xFF5EEAD4),
-                            shape = RoundedCornerShape(20.dp)
-                        )
-                        .padding(20.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = resultadoTexto,
-                        color = Color.Black
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PantallaDespachoPreview() {
-    AppDistribuidoraTheme {
-        PantallaDespacho(activity = ComponentActivity())
     }
 }
