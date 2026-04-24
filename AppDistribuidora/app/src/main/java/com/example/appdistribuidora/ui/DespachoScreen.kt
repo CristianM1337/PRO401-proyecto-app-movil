@@ -22,6 +22,7 @@ import com.example.appdistribuidora.logic.calcularDistancia
 import com.example.appdistribuidora.logic.obtenerUbicacionActual
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import com.google.firebase.database.FirebaseDatabase
 
 @Composable
 fun DespachoScreen(
@@ -93,6 +94,17 @@ fun DespachoScreen(
                             activity = activity,
                             onLocationReceived = { latUsuario, lonUsuario ->
 
+                                val database = FirebaseDatabase.getInstance()
+                                val ref = database.getReference("ubicaciones")
+
+                                val datos = mapOf(
+                                    "latitud" to latUsuario,
+                                    "longitud" to lonUsuario,
+                                    "timestamp" to System.currentTimeMillis()
+                                )
+
+                                ref.push().setValue(datos)
+
                                 val latBodega = -33.4372
                                 val lonBodega = -70.6506
 
@@ -102,7 +114,6 @@ fun DespachoScreen(
                                     latBodega,
                                     lonBodega
                                 )
-
                                 val costoDespacho = calcularCostoDespacho(montoCompra, distanciaKm)
 
                                 val mensajeCosto = if (costoDespacho == 0.0) {
