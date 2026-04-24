@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+// NUEVO 1: Importamos Firebase Auth
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(
@@ -17,6 +19,9 @@ fun LoginScreen(
     var correo by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
+
+    // NUEVO 2: Instanciamos Firebase Auth
+    val auth = FirebaseAuth.getInstance()
 
     Box(
         modifier = Modifier
@@ -69,7 +74,17 @@ fun LoginScreen(
                     if (correo.isBlank() || clave.isBlank()) {
                         error = "Completa todos los campos"
                     } else {
-                        onLoginSuccess()
+                        // NUEVO 3: Ejecutamos el login real con Firebase
+                        auth.signInWithEmailAndPassword(correo.trim(), clave.trim())
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    // Si Firebase lo aprueba, pasamos a la siguiente pantalla
+                                    onLoginSuccess()
+                                } else {
+                                    // Si falla (clave incorrecta, usuario no existe, etc), mostramos el error
+                                    error = task.exception?.message ?: "Error de autenticación"
+                                }
+                            }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
