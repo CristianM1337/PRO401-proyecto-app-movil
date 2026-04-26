@@ -20,15 +20,16 @@ import androidx.compose.ui.unit.dp
 import com.example.appdistribuidora.logic.calcularCostoDespacho
 import com.example.appdistribuidora.logic.calcularDistancia
 import com.example.appdistribuidora.logic.obtenerUbicacionActual
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
+import com.google.firebase.database.FirebaseDatabase
 
 @Composable
 fun DespachoScreen(
+    totalCompraInicial: Double?,
     activity: ComponentActivity,
     onBack: () -> Unit
 ) {
-    var montoIngresado by remember { mutableStateOf("") }
+    // Se toma el monto inicial si existe, si no, queda en blanco
+    var montoIngresado by remember { mutableStateOf(totalCompraInicial?.toInt()?.toString() ?: "") }
     var resultadoTexto by remember { mutableStateOf("") }
 
     val customTextSelectionColors = TextSelectionColors(
@@ -40,7 +41,6 @@ fun DespachoScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
-            .imePadding()
             .imePadding(),
     ) {
         Column(
@@ -69,6 +69,7 @@ fun DespachoScreen(
                     label = { Text("Ingrese monto de compra") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
+                    readOnly = totalCompraInicial != null, // Evita edición manual si viene del catálogo
                     modifier = Modifier.fillMaxWidth(0.9f),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0xFF14B8A6),
@@ -92,6 +93,18 @@ fun DespachoScreen(
                         obtenerUbicacionActual(
                             activity = activity,
                             onLocationReceived = { latUsuario, lonUsuario ->
+
+                                val database = FirebaseDatabase.getInstance()
+                                val ref = database.getReference("ubicaciones")
+
+                                val datos = mapOf(
+                                    "latitud" to latUsuario,
+                                    "longitud" to lonUsuario,
+                                    "timestamp" to System.currentTimeMillis()
+                                )
+
+                                ref.push().setValue(datos)
+                                // === FIN CÓDIGO FIREBASE ===
 
                                 val latBodega = -33.4372
                                 val lonBodega = -70.6506
@@ -122,8 +135,6 @@ fun DespachoScreen(
                                 Log.d("APP_DESPACHO", "Lon usuario: $lonUsuario")
                                 Log.d("APP_DESPACHO", "Distancia calculada: ${"%.2f".format(distanciaKm)} km")
                                 Log.d("APP_DESPACHO", "Costo despacho: ${"%.0f".format(costoDespacho)}")
-
-                                // Aquí después Cristian puede guardar en Firebase
                             },
                             onError = {
                                 resultadoTexto = "No se pudo obtener la ubicación actual del dispositivo"

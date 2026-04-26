@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun MenuScreen(
+    onGoToCatalogo: () -> Unit,
     onGoToDespacho: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -22,6 +23,15 @@ fun MenuScreen(
         Text("Menú principal", style = MaterialTheme.typography.headlineMedium)
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = onGoToCatalogo,
+            modifier = Modifier.fillMaxWidth().height(60.dp)
+        ) {
+            Text("🛒 Ver Catálogo de Productos")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         Button(
             onClick = onGoToDespacho,
