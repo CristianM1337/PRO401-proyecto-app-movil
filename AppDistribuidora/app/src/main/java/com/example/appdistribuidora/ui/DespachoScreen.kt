@@ -21,6 +21,8 @@ import com.example.appdistribuidora.logic.calcularCostoDespacho
 import com.example.appdistribuidora.logic.calcularDistancia
 import com.example.appdistribuidora.logic.obtenerUbicacionActual
 import com.google.firebase.database.FirebaseDatabase
+import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
 fun DespachoScreen(
@@ -28,9 +30,9 @@ fun DespachoScreen(
     activity: ComponentActivity,
     onBack: () -> Unit
 ) {
-    // Se toma el monto inicial si existe, si no, queda en blanco
     var montoIngresado by remember { mutableStateOf(totalCompraInicial?.toInt()?.toString() ?: "") }
     var resultadoTexto by remember { mutableStateOf("") }
+    val formatoPeso = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
 
     val customTextSelectionColors = TextSelectionColors(
         handleColor = Color(0xFF14B8A6),
@@ -41,7 +43,7 @@ fun DespachoScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
-            .imePadding(),
+            .imePadding()
     ) {
         Column(
             modifier = Modifier
@@ -65,11 +67,15 @@ fun DespachoScreen(
             ) {
                 OutlinedTextField(
                     value = montoIngresado,
-                    onValueChange = { montoIngresado = it },
+                    onValueChange = { nuevoValor ->
+                        if (nuevoValor.all { it.isDigit() }) {
+                            montoIngresado = nuevoValor
+                        }
+                    },
                     label = { Text("Ingrese monto de compra") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    readOnly = totalCompraInicial != null, // Evita edición manual si viene del catálogo
+                    readOnly = totalCompraInicial != null,
                     modifier = Modifier.fillMaxWidth(0.9f),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0xFF14B8A6),
@@ -89,7 +95,12 @@ fun DespachoScreen(
                 onClick = {
                     val montoCompra = montoIngresado.toIntOrNull()
 
-                    if (montoCompra != null) {
+                    if (montoCompra == null || montoCompra <= 0) {
+                        resultadoTexto = "Por favor, ingrese un monto válido mayor a $0"
+                        Log.d("APP_DESPACHO", "Entrada inválida en monto de compra")
+                    } else {
+                        resultadoTexto = "Calculando despacho..."
+
                         obtenerUbicacionActual(
                             activity = activity,
                             onLocationReceived = { latUsuario, lonUsuario ->
@@ -104,7 +115,13 @@ fun DespachoScreen(
                                 )
 
                                 ref.push().setValue(datos)
-                                // === FIN CÓDIGO FIREBASE ===
+                                    .addOnSuccessListener {
+                                        Log.d("APP_DESPACHO", "Ubicación guardada correctamente en Firebase")
+                                    }
+                                    .addOnFailureListener { error ->
+                                        Log.e("APP_DESPACHO", "Error al guardar ubicación en Firebase", error)
+                                        resultadoTexto = "No se pudo guardar la ubicación en Firebase. Intente nuevamente."
+                                    }
 
                                 val latBodega = -33.4372
                                 val lonBodega = -70.6506
@@ -121,28 +138,27 @@ fun DespachoScreen(
                                 val mensajeCosto = if (costoDespacho == 0.0) {
                                     "Despacho GRATIS 🎉"
                                 } else {
-                                    "Costo de despacho: $${"%.0f".format(costoDespacho)}"
+                                    "Costo de despacho: ${formatoPeso.format(costoDespacho)}"
                                 }
 
                                 resultadoTexto = buildString {
-                                    appendLine("Monto de compra: $$montoCompra")
-                                    appendLine("Distancia a bodega: ${"%.2f".format(distanciaKm)} km")
-                                    appendLine(mensajeCosto)
+                                    appendLine("📦 Monto de compra: ${formatoPeso.format(montoCompra)}")
+                                    appendLine("📍 Distancia a bodega: ${"%.2f".format(distanciaKm)} km")
+                                    appendLine("🚚 $mensajeCosto")
+                                    appendLine("☁️ Ubicación registrada en Firebase ")
                                 }
 
                                 Log.d("APP_DESPACHO", "Monto compra: $montoCompra")
                                 Log.d("APP_DESPACHO", "Lat usuario: $latUsuario")
                                 Log.d("APP_DESPACHO", "Lon usuario: $lonUsuario")
-                                Log.d("APP_DESPACHO", "Distancia calculada: ${"%.2f".format(distanciaKm)} km")
-                                Log.d("APP_DESPACHO", "Costo despacho: ${"%.0f".format(costoDespacho)}")
+                                Log.d("APP_DESPACHO", "Distancia: ${"%.2f".format(distanciaKm)} km")
+                                Log.d("APP_DESPACHO", "Costo: ${formatoPeso.format(costoDespacho)}")
                             },
                             onError = {
-                                resultadoTexto = "No se pudo obtener la ubicación actual del dispositivo"
+                                resultadoTexto =
+                                    "No se pudo obtener la ubicación. Activa el GPS e intenta nuevamente."
                             }
                         )
-                    } else {
-                        resultadoTexto = "Por favor, ingrese un monto válido"
-                        Log.d("APP_DESPACHO", "Entrada inválida en monto de compra")
                     }
                 },
                 modifier = Modifier.fillMaxWidth(0.6f),
