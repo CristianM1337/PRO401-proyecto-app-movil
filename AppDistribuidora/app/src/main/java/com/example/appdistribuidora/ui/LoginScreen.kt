@@ -103,11 +103,32 @@ fun LoginScreen(
                         auth.signInWithEmailAndPassword(correo.trim(), clave.trim())
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
-                                    // Si Firebase lo aprueba, pasamos a la siguiente pantalla
                                     onLoginSuccess()
                                 } else {
-                                    // Si falla (clave incorrecta, usuario no existe, etc), mostramos el error
-                                    error = task.exception?.message ?: "Error de autenticación"
+
+                                    error = when (val exception = task.exception) {
+
+                                        is com.google.firebase.auth.FirebaseAuthInvalidUserException ->
+                                            "El usuario no existe"
+
+                                        is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException -> {
+                                            when {
+                                                exception.message?.contains("password", true) == true ->
+                                                    "Contraseña incorrecta"
+
+                                                exception.message?.contains("email", true) == true ->
+                                                    "Correo electrónico no válido"
+
+                                                exception.message?.contains("no user record", true) == true ->
+                                                    "El usuario no existe"
+
+                                                else ->
+                                                    "Correo o contraseña incorrectos"
+                                            }
+                                        }
+
+                                        else -> "Error al iniciar sesión"
+                                    }
                                 }
                             }
                     }
